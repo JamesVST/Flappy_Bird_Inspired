@@ -1,2 +1,239 @@
 # Flappy_Bird_Inspired
  In "Flappy Trigon," players control a small triangle character. The objective is to navigate the bird through a series of green pipes that have openings in them. The bird constantly moves to the right, and players must click the space bar to make the triangle flap and ascend. 
+
+ # Flappy Trigon Game
+# Reference (Flappy Bird)
+# 02 Performance Task 1 - ARG
+# Gameplay:
+
+# In "Flappy Trigon," players control a small triangle character.
+# The objective is to navigate the bird through a series of green pipes that have openings in them.
+# The bird constantly moves to the right, and players must click the space bar to make the triangle flap and ascend.
+# Releasing the space bar allows the bird to descend due to gravity.
+# The goal is to fly the triangle safely through the gaps in the pipes without colliding with them.
+
+# (Q) and (R) keys are also used to restart and quit the game
+
+import turtle
+import time
+import pygame
+from PIL import Image
+
+# Initialize the screen
+wn = turtle.Screen()
+wn.title("Flappy Trigon")
+wn.setup(width=500, height=800)
+
+# Convert the JPG image to PNG (replace "forestbg.jpg" with your JPG image file)
+jpg_image = Image.open("forestbg.jpg")
+jpg_image.save("forestbg.png", "PNG")
+
+# Load the converted PNG image as the background
+wn.bgpic("forestbg.png")
+
+# Initialize pygame mixer
+pygame.mixer.init()
+
+# Load background music
+pygame.mixer.music.load("flappysound.mp3")  # Replace with your music file's path
+
+# Play background music
+pygame.mixer.music.play(-1)  # Loop indefinitely
+
+wn.tracer(0)
+
+# Initialize the pen for scoring
+pen = turtle.Turtle()
+pen.speed(0)
+pen.hideturtle()
+pen.penup()
+pen.color("Black")
+pen.goto(0, 250)
+pen.write("0", move=False, align="left", font=("Arial", 34, "normal"))
+
+# Create the player
+player = turtle.Turtle()
+player.speed(0)
+player.penup()
+player.color("red")
+player.shape("triangle")
+player.shapesize(stretch_wid=2, stretch_len=2)  # Adjust the stretch values to change the size
+player.goto(-200, 0)
+player.dx = 0
+player.dy = 1
+
+# Create the pipes
+pipes = []
+
+def create_pipe(x_position):
+    pipe_top = turtle.Turtle()
+    pipe_top.speed(0)
+    pipe_top.penup()
+    pipe_top.color("green")
+    pipe_top.shape("square")
+    pipe_top.shapesize(stretch_wid=18, stretch_len=3, outline=None)
+    pipe_top.goto(x_position, 250)
+    pipe_top.dx = -2
+    pipe_top.dy = 0
+    pipe_top.value = 1
+    
+    pipe_bottom = turtle.Turtle()
+    pipe_bottom.speed(0)
+    pipe_bottom.penup()
+    pipe_bottom.color("green")
+    pipe_bottom.shape("square")
+    pipe_bottom.shapesize(stretch_wid=18, stretch_len=3, outline=None)
+    pipe_bottom.goto(x_position, -250)
+    pipe_bottom.dx = -2
+    pipe_bottom.dy = 0
+    
+    pipes.append((pipe_top, pipe_bottom))
+
+# Create the initial set of pipes
+create_pipe(300)
+create_pipe(600)
+
+# Define gravity
+gravity = -0.3
+
+# Define the jump function
+def go_up():
+    player.dy += 8
+    
+    if player.dy > 8:
+        player.dy = 8
+
+def restart_game():
+    global game_active
+    game_active = True
+    player.goto(-200, 0)
+    player.dy = 0
+    player.score = 0
+    
+    # Clear the existing pipes and create new ones
+    for pipe_top, pipe_bottom in pipes:
+        pipe_top.hideturtle()
+        pipe_bottom.hideturtle()
+    pipes.clear()
+    create_pipe(300)
+    create_pipe(600)
+    
+    # Clear the previous score text
+    pen.clear()
+    
+    # Write the initial score
+    pen.penup()
+    pen.goto(0, 250)
+    pen.write(player.score, move=False, align="left", font=("Arial", 34, "normal"))
+
+# Function to quit the game
+def quit_game():
+    wn.bye()
+
+# Keyboard binding
+wn.listen()
+wn.onkeypress(go_up, "space")
+wn.onkeypress(restart_game, "r")  # Bind "R" key to restart_game function
+wn.onkeypress(quit_game, "q")      # Bind "Q" key to quit_game function
+
+# Initialize game variables
+player.score = 0
+game_active = True  # Flag to track game state
+
+# Initialize restart_button and quit_button globally
+restart_button = turtle.Turtle()
+restart_button.speed(0)
+restart_button.penup()
+restart_button.color("green")
+restart_button.goto(-50, -50)
+restart_button.hideturtle()
+
+quit_button = turtle.Turtle()
+quit_button.speed(0)
+quit_button.penup()
+quit_button.color("red")
+quit_button.goto(50, -50)
+quit_button.hideturtle()
+
+# Function to update the score
+def update_score():
+    for pipe_top, _ in pipes:
+        if pipe_top.xcor() + 30 < player.xcor() - 10:
+            player.score += pipe_top.value
+            pipe_top.value = 0
+            pen.clear()
+            pen.write(player.score, move=False, align="center", font=("Arial", 32, "normal"))
+
+# Function to check for collisions with pipes
+def check_collision(player, pipe_top, pipe_bottom):
+    if (player.xcor() + 10 > pipe_top.xcor() - 30) and (player.xcor() - 10 < pipe_top.xcor() + 30):
+        if (player.ycor() + 10 > pipe_top.ycor() - 180) or (player.ycor() - 10 < pipe_bottom.ycor() + 180):
+            return True
+    return False
+
+# Function to move the pipes
+def move_pipes():
+    for pipe_top, pipe_bottom in pipes:
+        x_top, y_top = pipe_top.xcor(), pipe_top.ycor()
+        x_bottom, y_bottom = pipe_bottom.xcor(), pipe_bottom.ycor()
+        x_top += pipe_top.dx
+        x_bottom += pipe_bottom.dx
+        pipe_top.setx(x_top)
+        pipe_bottom.setx(x_bottom)
+        if x_top < -350:
+            pipe_top.setx(350)
+            pipe_bottom.setx(350)
+            pipe_top.value = 1
+
+# Function to handle game over
+def game_over():
+    global game_active  # Use the global game_active flag
+    game_active = False  # Set the game state to over
+    pen.clear()
+    pen.write("Game Over", move=False, align="center", font=("Arial", 24, "normal"))
+    pen.goto(0, 0)  # Move the pen to the center to display the score
+    pen.write(f"Final Score: {player.score}", move=False, align="center", font=("Arial", 18, "normal"))
+    
+    # Show restart and quit buttons
+    restart_button.showturtle()
+    quit_button.showturtle()
+
+    # Listen for button clicks
+    wn.onclick(handle_click)
+
+# Function to handle button clicks
+def handle_click(x, y):
+    if -60 <= x <= -10 and -60 <= y <= -40:
+        # Restart button clicked
+        restart_game()
+    elif 10 <= x <= 60 and -60 <= y <= -40:
+        # Quit button clicked
+        quit_game()
+
+# Main Game Loop
+while True:  # Run the game loop indefinitely
+    if game_active:  # Only update the game if it's active
+        time.sleep(0.02)
+        wn.update()
+        
+        player.dy += gravity
+        
+        y = player.ycor()
+        y += player.dy
+        player.sety(y)
+        
+        if player.ycor() < -390:
+            player.dy = 0
+            player.sety(-390)
+        
+        for pipe_top, pipe_bottom in pipes:
+            if check_collision(player, pipe_top, pipe_bottom):
+                game_over()
+        
+        update_score()
+        move_pipes()
+
+    wn.update()  # Update the screen to refresh the restart/quit buttons
+
+wn.mainloop()
+
